@@ -20,7 +20,7 @@ class SavedReference extends Migration
 
     public function down()
     {
-        Schema::dropIfExists('epikoder_ocpaystack_saved_reference');
+        Schema::dropIfExists('offline_mall_ocpaystack_saved_reference');
     }
 }
 ?>
