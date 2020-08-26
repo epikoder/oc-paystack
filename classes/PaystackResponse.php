@@ -8,7 +8,7 @@ class PaystackResponse
 {
     function __toString() : string
     {
-        return utf8_encode($this->data->gateway_response);
+        return utf8_encode($this->data->status);
     }
 
     function isSuccessful() : bool
