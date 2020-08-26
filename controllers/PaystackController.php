@@ -42,8 +42,8 @@ class PaystackController extends Controller
         $tranx = $this->objectToObject($tranx, '\Epikoder\Ocpaystack\Classes\PaystackResponse');
         //dd($tranx->isSuccessful());
 
-        dd(null !== $tranx && !\is_string($tranx) && !is_numeric($tranx) && !\is_callable([$tranx, '__toString']));
-        $res = new Response($tranx);
+        //dd(null !== $tranx && !\is_string($tranx) && !is_numeric($tranx) && !\is_callable([$tranx, '__toString']));
+        //$res = new Response($tranx);
         //dd($res);
         $order = Order::find($tranx->data->metadata->id);
         $result = new PaymentResult($paystack, $order);
