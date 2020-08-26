@@ -9,7 +9,7 @@ class SavedReference extends Migration
 {
     public function up()
     {
-        Schema::create('epikoder_ocpaystack_saved_reference', function ($table) {
+        Schema::create('offline_mall_ocpaystack_saved_reference', function ($table) {
             $table->engine = 'InnoDB';
             $table->bigIncrements('id')->unsigned();
             $table->string('reference', 10);
