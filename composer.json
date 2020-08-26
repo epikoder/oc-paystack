@@ -1,0 +1,22 @@
+{
+  "name": "epikoder/oc-paystack",
+  "type": "october-plugin",
+  "description": "Paystack payment method for oc-mall-plugin",
+  "keywords": [
+    "october",
+    "cms",
+    "e-commerce",
+    "shop",
+    "plugin"
+  ],
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Efedua Believe",
+      "email": "efedua.bell@gmail.com"
+    }
+  ],
+  "require": {
+    "yabacon/paystack-php": "^2.2.0"
+  }
+}
