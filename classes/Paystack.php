@@ -3,12 +3,15 @@
 namespace Epikoder\Ocpaystack\Classes;
 
 use Config;
+use Session;
+use Request;
 use Illuminate\Support\Facades\DB;
 use OFFLINE\Mall\Models\PaymentGatewaySettings;
 use OFFLINE\Mall\Classes\Payments\PaymentResult;
 use RainLab\User\Facades\Auth;
 use Yabacon\Paystack as PaystackAPI;
-use Yabacon\Paystack\MetadataBuilder;
+
+use function Opis\Closure\serialize;
 
 class Paystack extends \OFFLINE\Mall\Classes\Payments\PaymentProvider
 {
@@ -81,14 +84,14 @@ class Paystack extends \OFFLINE\Mall\Classes\Payments\PaymentProvider
             ],
             'unit' => [
                 'label'   => 'Unit',
-                'comment' => 'Currency unit this value will be multiplied to rate ,e.g 100 kobo = 1 NGN',
+                'comment' => 'Currency unit use 100 for NGN ,e.g 100 kobo = 1 NGN',
                 'span'    => 'left',
                 'type'    => 'text',
                 'value' => '100'
             ],
             'rate' => [
                 'label'   => 'Rate',
-                'comment' => 'Rate of 1 EURO to Currency e.g NGN455.11 = 1EURO',
+                'comment' => 'Rate of to default Store Currency e.g NGN455.11 = 1EURO',
                 'span'    => 'right',
                 'type'    => 'text',
             ],
@@ -123,26 +126,56 @@ class Paystack extends \OFFLINE\Mall\Classes\Payments\PaymentProvider
                 'amount'    => $this->paystack['amount'],
                 'currency'  => $this->paystack['currency'],
                 'email' => $this->paystack['email'],
-                'metadata' => [
-                    'id' => $this->order->id
-                ],
+                'callback_url' => $this->returnUrl()
+                ]);
+        } catch (\Yabacon\Paystack\Exception\ApiException $e) {
+            print_r($e->getResponseObject());
+            die($e->getMessage());
+        }
+        traceLog('Callback_url: '. $this->returnUrl());
+
+        return $result->redirect($tranx->data->authorization_url);
+    }
+    
+    /**
+     * Complete payment from callback_url
+     */
+    public function complete (PaymentResult $result) : PaymentResult
+    {
+        $reference = Request::input('reference');
+        if (!$reference) {
+            traceLog('no reference given');
+            return $result->fail([
+                'msg'   => 'Missing payment data'
+            ], null);
+        }
+
+        $this->setOrder($result->order);
+        $gateway = $this->create();
+
+        try {
+            $tranx = $gateway->transaction->verify([
+                'reference' => $reference
             ]);
         } catch (\Yabacon\Paystack\Exception\ApiException $e) {
             print_r($e->getResponseObject());
             die($e->getMessage());
         }
-        DB::table('epikoder_ocpaystack_saved_reference')->insert([
-            'reference' => $tranx->data->reference,
-        ]);
 
-        return $result->redirect($tranx->data->authorization_url);
+        $tranx = new PaystackResponse($tranx);
+        if (get_class($tranx) != 'Epikoder\Ocpaystack\Classes\PaystackResponse') {
+            throw new \UnexpectedValueException(sprintf('the class type must be an instance of \Epikoder\Ocpaystack\Classes\PaystackResponse, "%s" given', \get_class($tranx)));
+        }
+        traceLog($tranx);
+
+        return $result->success((array) $tranx->data->authorization, $tranx);
     }
 
     /**
      * Initialize paystack and set configuration 
      * defined in backend if available
      */
-    public function init ()
+    public function init () : \Yabacon\Paystack
     {
         $currency = decrypt(PaymentGatewaySettings::get('currency'));
         $rate = decrypt(PaymentGatewaySettings::get('rate'));
@@ -168,16 +201,6 @@ class Paystack extends \OFFLINE\Mall\Classes\Payments\PaymentProvider
     public function create ()
     {
         return new PaystackAPI(decrypt(PaymentGatewaySettings::get('secret_key')));
-    }
-
-    public function complete (PaymentResult $result, $tranx) : PaymentResult
-    {
-        return $result->success((array) $tranx->data->authorization, $tranx);
-    }
-    
-    public function failed(PaymentResult $result, $tranx): PaymentResult
-    {
-        return $result->fail((array) $tranx->data->authorization, $tranx);
     }
 }
 ?>

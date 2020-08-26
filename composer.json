@@ -3,11 +3,11 @@
   "type": "october-plugin",
   "description": "Paystack payment method for oc-mall-plugin",
   "keywords": [
-    "october",
-    "cms",
+    "oc-mall",
+    "paystack",
     "e-commerce",
-    "shop",
-    "plugin"
+    "payment",
+    "gateway"
   ],
   "license": "MIT",
   "authors": [
