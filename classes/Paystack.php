@@ -3,7 +3,6 @@
 namespace Epikoder\Ocpaystack\Classes;
 
 use Config;
-use Session;
 use Request;
 use Illuminate\Support\Facades\DB;
 use OFFLINE\Mall\Models\PaymentGatewaySettings;
@@ -108,7 +107,7 @@ class Paystack extends \OFFLINE\Mall\Classes\Payments\PaymentProvider
      */
     public function encryptedSettings(): array
     {
-        return ['secret_key','currency','unit', 'rate'];
+        return ['secret_key', 'currency', 'unit', 'rate'];
     }
 
     /**
@@ -127,32 +126,28 @@ class Paystack extends \OFFLINE\Mall\Classes\Payments\PaymentProvider
                 'currency'  => $this->paystack['currency'],
                 'email' => $this->paystack['email'],
                 'callback_url' => $this->returnUrl()
-                ]);
+            ]);
         } catch (\Yabacon\Paystack\Exception\ApiException $e) {
             print_r($e->getResponseObject());
             die($e->getMessage());
         }
-        traceLog('Callback_url: '. $this->returnUrl());
 
         return $result->redirect($tranx->data->authorization_url);
     }
-    
+
     /**
      * Complete payment from callback_url
      */
-    public function complete (PaymentResult $result) : PaymentResult
+    public function complete(PaymentResult $result): PaymentResult
     {
         $reference = Request::input('reference');
         if (!$reference) {
-            traceLog('no reference given');
             return $result->fail([
                 'msg'   => 'Missing payment data'
             ], null);
         }
 
-        $this->setOrder($result->order);
         $gateway = $this->create();
-
         try {
             $tranx = $gateway->transaction->verify([
                 'reference' => $reference
@@ -161,12 +156,15 @@ class Paystack extends \OFFLINE\Mall\Classes\Payments\PaymentProvider
             print_r($e->getResponseObject());
             die($e->getMessage());
         }
-
+        
+        $this->setOrder($result->order);
         $tranx = new PaystackResponse($tranx);
         if (get_class($tranx) != 'Epikoder\Ocpaystack\Classes\PaystackResponse') {
             throw new \UnexpectedValueException(sprintf('the class type must be an instance of \Epikoder\Ocpaystack\Classes\PaystackResponse, "%s" given', \get_class($tranx)));
         }
-        traceLog($tranx);
+        if ($tranx->data->status != 'success' || !$tranx->isSuccessful()) {
+            return $result->fail((array) $tranx->data->authorization, $tranx);
+        }
 
         return $result->success((array) $tranx->data->authorization, $tranx);
     }
@@ -175,7 +173,7 @@ class Paystack extends \OFFLINE\Mall\Classes\Payments\PaymentProvider
      * Initialize paystack and set configuration 
      * defined in backend if available
      */
-    public function init () : \Yabacon\Paystack
+    public function init(): \Yabacon\Paystack
     {
         $currency = decrypt(PaymentGatewaySettings::get('currency'));
         $rate = decrypt(PaymentGatewaySettings::get('rate'));
@@ -198,9 +196,8 @@ class Paystack extends \OFFLINE\Mall\Classes\Payments\PaymentProvider
     /**
      * Create the gateway instance
      */
-    public function create ()
+    public function create()
     {
         return new PaystackAPI(decrypt(PaymentGatewaySettings::get('secret_key')));
     }
 }
-?>
