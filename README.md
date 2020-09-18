@@ -4,6 +4,7 @@ A paystack gateway plugin for OctoberCMS oc-mall
 ### Features
 - Paystack gateway
 - Response data returned in JSON
+- Weebhook (not implemented yet)
 
 ### Configuration
 - Currency
